@@ -1,791 +1,219 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NEXUS — Crypto Trading Terminal</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --bg0: #080b10;
-    --bg1: #0d1117;
-    --bg2: #111820;
-    --bg3: #151d28;
-    --bg4: #1a2433;
-    --border: rgba(255,255,255,0.06);
-    --border2: rgba(255,255,255,0.1);
-    --text1: #e8edf2;
-    --text2: #8899aa;
-    --text3: #4a5c6e;
-    --green: #00e8a2;
-    --green-dim: rgba(0,232,162,0.12);
-    --red: #ff4d6a;
-    --red-dim: rgba(255,77,106,0.12);
-    --blue: #3b9eff;
-    --blue-dim: rgba(59,158,255,0.1);
-    --amber: #f7b731;
-    --amber-dim: rgba(247,183,49,0.1);
-    --purple: #9b7ff4;
-    --mono: 'Space Mono', monospace;
-    --sans: 'DM Sans', sans-serif;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg0); color: var(--text1); font-family: var(--sans); font-size: 13px; overflow-x: hidden; }
+  <title>Crypto Terminal</title>
+  <style>
+    /* Set background color and font for the whole page */
+    body {
+      background-color: #0a0a0a;
+      color: white;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
 
-  /* TOPBAR */
-  .topbar {
-    display: flex; align-items: center; gap: 0;
-    background: var(--bg1); border-bottom: 1px solid var(--border);
-    height: 44px; padding: 0 16px; position: sticky; top: 0; z-index: 100;
-  }
-  .logo { font-family: var(--mono); font-size: 13px; font-weight: 700; letter-spacing: 0.15em; color: var(--text1); margin-right: 24px; }
-  .logo span { color: var(--green); }
-  .ticker-strip { display: flex; gap: 0; flex: 1; overflow: hidden; }
-  .ticker-item {
-    display: flex; align-items: center; gap: 8px;
-    padding: 0 14px; height: 44px; cursor: pointer;
-    border-right: 1px solid var(--border);
-    transition: background 0.15s;
-    white-space: nowrap;
-  }
-  .ticker-item:hover { background: var(--bg3); }
-  .ticker-item.active { background: var(--bg3); border-bottom: 2px solid var(--green); }
-  .ticker-sym { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--text2); }
-  .ticker-price { font-family: var(--mono); font-size: 12px; color: var(--text1); }
-  .ticker-change { font-family: var(--mono); font-size: 10px; }
-  .up { color: var(--green); }
-  .dn { color: var(--red); }
-  .topbar-right { display: flex; align-items: center; gap: 12px; margin-left: 16px; }
-  .pill { font-size: 11px; font-family: var(--mono); padding: 3px 10px; border-radius: 20px; border: 1px solid var(--border2); color: var(--text2); }
-  .pill.live { border-color: var(--green); color: var(--green); animation: pulse 2s infinite; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+    /* Top navigation bar */
+    .navbar {
+      background-color: #111;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #00ff88;
+    }
 
-  /* LAYOUT */
-  .layout { display: grid; grid-template-columns: 1fr 320px 280px; grid-template-rows: auto 1fr; height: calc(100vh - 44px); gap: 1px; background: var(--border); }
-  .panel { background: var(--bg1); overflow: hidden; }
+    /* Logo text style */
+    .logo {
+      font-size: 24px;
+      font-weight: bold;
+      color: #00ff88;
+    }
 
-  /* CHART PANEL */
-  .chart-panel { grid-row: 1 / 3; display: flex; flex-direction: column; }
-  .chart-header { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
-  .pair-name { font-family: var(--mono); font-size: 16px; font-weight: 700; color: var(--text1); }
-  .pair-price { font-family: var(--mono); font-size: 22px; font-weight: 700; color: var(--green); }
-  .pair-meta { display: flex; flex-direction: column; gap: 2px; margin-left: auto; }
-  .meta-row { display: flex; gap: 16px; }
-  .meta-item { display: flex; flex-direction: column; align-items: flex-end; }
-  .meta-label { font-size: 10px; color: var(--text3); font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.08em; }
-  .meta-val { font-family: var(--mono); font-size: 12px; color: var(--text2); }
-  .timeframe-tabs { display: flex; gap: 0; padding: 8px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
-  .tf-btn {
-    font-family: var(--mono); font-size: 11px; padding: 4px 10px; cursor: pointer;
-    background: transparent; border: 1px solid transparent; color: var(--text3);
-    border-radius: 4px; transition: all 0.15s;
-  }
-  .tf-btn:hover { color: var(--text2); border-color: var(--border2); }
-  .tf-btn.active { background: var(--bg3); color: var(--green); border-color: var(--green); }
-  .chart-area { flex: 1; position: relative; padding: 16px; min-height: 0; }
-  .chart-area canvas { width: 100% !important; }
+    /* Nav links */
+    .nav-links a {
+      color: white;
+      text-decoration: none;
+      margin-left: 20px;
+      font-size: 14px;
+    }
 
-  /* INDICATOR ROW */
-  .indicators { display: flex; gap: 0; border-top: 1px solid var(--border); flex-shrink: 0; }
-  .ind-item { flex: 1; padding: 8px 12px; border-right: 1px solid var(--border); }
-  .ind-item:last-child { border-right: none; }
-  .ind-label { font-size: 10px; color: var(--text3); font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 2px; }
-  .ind-val { font-family: var(--mono); font-size: 12px; }
+    .nav-links a:hover {
+      color: #00ff88;
+    }
 
-  /* ORDERBOOK */
-  .orderbook-panel { display: flex; flex-direction: column; }
-  .panel-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
-  .panel-title { font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: var(--text2); text-transform: uppercase; }
-  .spread-badge { font-family: var(--mono); font-size: 10px; color: var(--amber); border: 1px solid var(--amber); border-radius: 3px; padding: 2px 6px; }
-  .ob-headers { display: grid; grid-template-columns: 1fr 1fr 1fr; padding: 6px 14px; }
-  .ob-head { font-family: var(--mono); font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; }
-  .ob-head:last-child { text-align: right; }
-  .ob-head:nth-child(2) { text-align: center; }
-  .ob-rows { flex: 1; overflow-y: auto; scrollbar-width: none; }
-  .ob-rows::-webkit-scrollbar { display: none; }
-  .ob-row { display: grid; grid-template-columns: 1fr 1fr 1fr; padding: 3px 14px; position: relative; transition: background 0.1s; }
-  .ob-row:hover { background: var(--bg3); }
-  .ob-bar { position: absolute; top: 0; bottom: 0; opacity: 0.12; border-radius: 2px; }
-  .ob-bar.ask { right: 0; background: var(--red); }
-  .ob-bar.bid { right: 0; background: var(--green); }
-  .ob-price { font-family: var(--mono); font-size: 11px; }
-  .ob-price.ask { color: var(--red); }
-  .ob-price.bid { color: var(--green); }
-  .ob-size { font-family: var(--mono); font-size: 11px; color: var(--text2); text-align: center; }
-  .ob-total { font-family: var(--mono); font-size: 11px; color: var(--text3); text-align: right; }
-  .ob-mid { text-align: center; padding: 6px 14px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); background: var(--bg2); flex-shrink: 0; }
-  .ob-mid-price { font-family: var(--mono); font-size: 14px; font-weight: 700; color: var(--green); }
-  .ob-mid-usd { font-family: var(--mono); font-size: 11px; color: var(--text3); }
+    /* Section heading */
+    h2 {
+      color: #00ff88;
+      margin-top: 30px;
+    }
 
-  /* TRADE HISTORY */
-  .trade-panel { display: flex; flex-direction: column; }
-  .trade-rows { flex: 1; overflow-y: auto; scrollbar-width: none; }
-  .trade-rows::-webkit-scrollbar { display: none; }
-  .trade-row { display: grid; grid-template-columns: 1fr 1fr 1fr; padding: 4px 14px; }
-  .trade-row:hover { background: var(--bg3); }
-  .tr-price { font-family: var(--mono); font-size: 11px; }
-  .tr-size { font-family: var(--mono); font-size: 11px; color: var(--text2); text-align: center; }
-  .tr-time { font-family: var(--mono); font-size: 11px; color: var(--text3); text-align: right; }
+    /* Card container for coins */
+    .card-container {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin-top: 15px;
+    }
 
-  /* PORTFOLIO */
-  .portfolio-panel { display: flex; flex-direction: column; }
-  .port-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); flex-shrink: 0; }
-  .port-stat { background: var(--bg2); padding: 10px 14px; }
-  .port-stat-label { font-size: 10px; color: var(--text3); font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 3px; }
-  .port-stat-val { font-family: var(--mono); font-size: 13px; font-weight: 700; }
-  .port-holdings { flex: 1; overflow-y: auto; scrollbar-width: none; }
-  .port-holdings::-webkit-scrollbar { display: none; }
-  .holding-row { display: flex; align-items: center; gap: 10px; padding: 9px 14px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.1s; }
-  .holding-row:hover { background: var(--bg3); }
-  .holding-icon { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 9px; font-weight: 700; flex-shrink: 0; }
-  .holding-info { flex: 1; }
-  .holding-sym { font-family: var(--mono); font-size: 12px; font-weight: 700; }
-  .holding-name { font-size: 11px; color: var(--text3); }
-  .holding-right { text-align: right; }
-  .holding-val { font-family: var(--mono); font-size: 12px; }
-  .holding-pnl { font-family: var(--mono); font-size: 11px; }
-  .holding-bar { height: 2px; background: var(--bg4); border-radius: 1px; margin: 0 14px 0; overflow: hidden; }
-  .holding-bar-fill { height: 100%; border-radius: 1px; }
+    /* Each crypto card */
+    .card {
+      background-color: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 10px;
+      padding: 20px;
+      width: 180px;
+      text-align: center;
+    }
 
-  /* TRADE FORM */
-  .trade-form { flex-shrink: 0; border-top: 1px solid var(--border); }
-  .trade-tabs { display: flex; border-bottom: 1px solid var(--border); }
-  .trade-tab { flex: 1; padding: 8px; text-align: center; font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: 0.08em; cursor: pointer; border: none; background: transparent; color: var(--text3); transition: all 0.15s; }
-  .trade-tab.buy.active { color: var(--green); border-bottom: 2px solid var(--green); }
-  .trade-tab.sell.active { color: var(--red); border-bottom: 2px solid var(--red); }
-  .trade-body { padding: 12px 14px; }
-  .form-group { margin-bottom: 10px; }
-  .form-label { font-size: 10px; color: var(--text3); font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; display: flex; justify-content: space-between; }
-  .form-input { width: 100%; background: var(--bg0); border: 1px solid var(--border2); border-radius: 4px; padding: 7px 10px; color: var(--text1); font-family: var(--mono); font-size: 12px; outline: none; transition: border-color 0.15s; }
-  .form-input:focus { border-color: var(--green); }
-  .pct-row { display: flex; gap: 6px; margin-bottom: 10px; }
-  .pct-btn { flex: 1; background: var(--bg3); border: 1px solid var(--border); border-radius: 3px; padding: 4px; text-align: center; font-family: var(--mono); font-size: 10px; color: var(--text3); cursor: pointer; transition: all 0.15s; }
-  .pct-btn:hover { border-color: var(--green); color: var(--green); }
-  .submit-btn { width: 100%; padding: 9px; border-radius: 4px; border: none; font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: 0.08em; cursor: pointer; transition: all 0.15s; }
-  .submit-btn.buy { background: var(--green); color: #000; }
-  .submit-btn.sell { background: var(--red); color: #fff; }
-  .submit-btn:hover { opacity: 0.85; transform: translateY(-1px); }
-  .submit-btn:active { transform: translateY(0); }
+    /* Coin name */
+    .coin-name {
+      font-size: 18px;
+      font-weight: bold;
+    }
 
-  /* NEWS PANEL */
-  .news-panel { display: flex; flex-direction: column; }
-  .news-list { flex: 1; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--border2) transparent; }
-  .news-item { padding: 11px 14px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.1s; }
-  .news-item:hover { background: var(--bg3); }
-  .news-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
-  .news-source { font-family: var(--mono); font-size: 10px; color: var(--blue); }
-  .news-time { font-family: var(--mono); font-size: 10px; color: var(--text3); }
-  .news-sentiment { font-size: 10px; padding: 1px 6px; border-radius: 2px; font-family: var(--mono); }
-  .news-sentiment.bull { background: var(--green-dim); color: var(--green); }
-  .news-sentiment.bear { background: var(--red-dim); color: var(--red); }
-  .news-sentiment.neut { background: var(--bg4); color: var(--text3); }
-  .news-headline { font-size: 12px; color: var(--text1); line-height: 1.45; }
-  .news-coins { display: flex; gap: 4px; margin-top: 5px; }
-  .news-coin-tag { font-family: var(--mono); font-size: 10px; color: var(--text3); background: var(--bg3); padding: 1px 5px; border-radius: 2px; }
+    /* Coin price */
+    .coin-price {
+      font-size: 22px;
+      margin: 10px 0;
+      color: #00ff88;
+    }
 
-  /* SCROLLBAR STYLE */
-  ::-webkit-scrollbar { width: 3px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+    /* Green = price going up */
+    .up {
+      color: #00ff88;
+    }
 
-  /* RESPONSIVE clamp for very small heights */
-  @media (max-height: 700px) { .layout { height: auto; min-height: 700px; } }
+    /* Red = price going down */
+    .down {
+      color: #ff4444;
+    }
 
-  /* TOAST */
-  .toast { position: fixed; bottom: 24px; right: 24px; background: var(--bg3); border: 1px solid var(--green); color: var(--green); font-family: var(--mono); font-size: 12px; padding: 10px 18px; border-radius: 6px; z-index: 999; opacity: 0; transform: translateY(8px); transition: all 0.25s; pointer-events: none; }
-  .toast.show { opacity: 1; transform: translateY(0); }
-</style>
+    /* Button style */
+    button {
+      background-color: #00ff88;
+      color: black;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: bold;
+      margin-top: 20px;
+    }
+
+    button:hover {
+      background-color: #00cc66;
+    }
+
+    /* Footer */
+    .footer {
+      margin-top: 40px;
+      text-align: center;
+      color: #555;
+      font-size: 12px;
+    }
+  </style>
 </head>
 <body>
 
-<!-- TOPBAR -->
-<div class="topbar">
-  <div class="logo">NEX<span>US</span></div>
-  <div class="ticker-strip" id="tickerStrip"></div>
-  <div class="topbar-right">
-    <div class="pill live">● LIVE</div>
-    <div class="pill">TESTNET</div>
-  </div>
-</div>
-
-<!-- MAIN LAYOUT -->
-<div class="layout">
-
-  <!-- CHART PANEL -->
-  <div class="panel chart-panel">
-    <div class="chart-header">
-      <div>
-        <div class="pair-name" id="pairName">BTC / USDT</div>
-        <div style="font-size:11px;color:var(--text3);font-family:var(--mono);">BINANCE</div>
-      </div>
-      <div style="margin-left:16px;">
-        <div class="pair-price" id="pairPrice">67,432.50</div>
-        <div style="display:flex;gap:8px;align-items:center;margin-top:2px;">
-          <span class="up" id="pairChange" style="font-family:var(--mono);font-size:12px;">+2.34%</span>
-          <span style="font-family:var(--mono);font-size:11px;color:var(--text3);">24h</span>
-        </div>
-      </div>
-      <div class="pair-meta">
-        <div class="meta-row">
-          <div class="meta-item">
-            <span class="meta-label">24h High</span>
-            <span class="meta-val up" id="high24">68,200.00</span>
-          </div>
-          <div class="meta-item">
-            <span class="meta-label">24h Low</span>
-            <span class="meta-val dn" id="low24">65,890.00</span>
-          </div>
-          <div class="meta-item">
-            <span class="meta-label">24h Vol</span>
-            <span class="meta-val">42,318 BTC</span>
-          </div>
-          <div class="meta-item">
-            <span class="meta-label">Mkt Cap</span>
-            <span class="meta-val">$1.32T</span>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="timeframe-tabs">
-      <button class="tf-btn" onclick="setTF('1m')">1m</button>
-      <button class="tf-btn" onclick="setTF('5m')">5m</button>
-      <button class="tf-btn" onclick="setTF('15m')">15m</button>
-      <button class="tf-btn" onclick="setTF('1h')">1H</button>
-      <button class="tf-btn active" onclick="setTF('4h')">4H</button>
-      <button class="tf-btn" onclick="setTF('1d')">1D</button>
-      <button class="tf-btn" onclick="setTF('1w')">1W</button>
-    </div>
-    <div class="chart-area" id="chartArea">
-      <canvas id="priceChart"></canvas>
-    </div>
-    <div class="indicators">
-      <div class="ind-item"><div class="ind-label">RSI (14)</div><div class="ind-val" style="color:var(--amber)">61.4</div></div>
-      <div class="ind-item"><div class="ind-label">MACD</div><div class="ind-val up">+142.3</div></div>
-      <div class="ind-item"><div class="ind-label">MA (20)</div><div class="ind-val" style="color:var(--purple)">66,812</div></div>
-      <div class="ind-item"><div class="ind-label">MA (50)</div><div class="ind-val" style="color:var(--blue)">63,440</div></div>
-      <div class="ind-item"><div class="ind-label">Vol (24h)</div><div class="ind-val">$2.84B</div></div>
-      <div class="ind-item"><div class="ind-label">Funding</div><div class="ind-val up">+0.012%</div></div>
+  <!-- NAVBAR -->
+  <div class="navbar">
+    <div class="logo">💹 CryptoTerminal</div>
+    <div class="nav-links">
+      <a href="#">Home</a>
+      <a href="#">Markets</a>
+      <a href="#">Portfolio</a>
+      <a href="#">Login</a>
     </div>
   </div>
 
-  <!-- ORDERBOOK -->
-  <div class="panel orderbook-panel">
-    <div class="panel-header">
-      <span class="panel-title">Order Book</span>
-      <span class="spread-badge" id="spreadBadge">Spread: 0.50</span>
-    </div>
-    <div class="ob-headers">
-      <span class="ob-head">Price</span>
-      <span class="ob-head" style="text-align:center">Size</span>
-      <span class="ob-head" style="text-align:right">Total</span>
-    </div>
-    <div class="ob-rows" id="askRows" style="max-height:180px;"></div>
-    <div class="ob-mid">
-      <div class="ob-mid-price" id="midPrice">67,432.50</div>
-      <div class="ob-mid-usd">≈ $67,432.50</div>
-    </div>
-    <div class="ob-rows" id="bidRows" style="max-height:180px;"></div>
+  <!-- MAIN HEADING -->
+  <h2>📊 Live Crypto Prices</h2>
+  <p>Click the button below to refresh prices.</p>
 
-    <div class="panel-header" style="margin-top:1px;">
-      <span class="panel-title">Recent Trades</span>
-      <span style="font-family:var(--mono);font-size:10px;color:var(--text3);">LIVE</span>
+  <!-- REFRESH BUTTON -->
+  <button onclick="updatePrices()">🔄 Refresh Prices</button>
+
+  <!-- CRYPTO CARDS -->
+  <div class="card-container">
+
+    <div class="card">
+      <div class="coin-name">₿ Bitcoin</div>
+      <div class="coin-price" id="btc-price">$67,431</div>
+      <div class="up" id="btc-change">▲ +2.3%</div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;padding:5px 14px;">
-      <span style="font-family:var(--mono);font-size:10px;color:var(--text3);">PRICE</span>
-      <span style="font-family:var(--mono);font-size:10px;color:var(--text3);text-align:center">AMOUNT</span>
-      <span style="font-family:var(--mono);font-size:10px;color:var(--text3);text-align:right">TIME</span>
+
+    <div class="card">
+      <div class="coin-name">Ξ Ethereum</div>
+      <div class="coin-price" id="eth-price">$3,821</div>
+      <div class="up" id="eth-change">▲ +1.8%</div>
     </div>
-    <div class="trade-rows" id="tradeRows" style="max-height:160px;"></div>
+
+    <div class="card">
+      <div class="coin-name">◎ Solana</div>
+      <div class="coin-price" id="sol-price">$185</div>
+      <div class="down" id="sol-change">▼ -0.9%</div>
+    </div>
+
+    <div class="card">
+      <div class="coin-name">B BNB</div>
+      <div class="coin-price" id="bnb-price">$612</div>
+      <div class="up" id="bnb-change">▲ +0.4%</div>
+    </div>
+
   </div>
 
-  <!-- PORTFOLIO -->
-  <div class="panel portfolio-panel">
-    <div class="panel-header">
-      <span class="panel-title">Portfolio</span>
-      <span style="font-family:var(--mono);font-size:10px;color:var(--green)">↑ 4.82% today</span>
-    </div>
-    <div class="port-summary">
-      <div class="port-stat">
-        <div class="port-stat-label">Total Value</div>
-        <div class="port-stat-val" style="color:var(--text1)">$48,291.44</div>
-      </div>
-      <div class="port-stat">
-        <div class="port-stat-label">24h P&L</div>
-        <div class="port-stat-val up">+$2,214.82</div>
-      </div>
-      <div class="port-stat">
-        <div class="port-stat-label">Available</div>
-        <div class="port-stat-val" style="color:var(--blue)">$5,820.00</div>
-      </div>
-      <div class="port-stat">
-        <div class="port-stat-label">Unrealized</div>
-        <div class="port-stat-val" style="color:var(--amber)">+$1,102.50</div>
-      </div>
-    </div>
-    <div class="port-holdings" id="holdingsList"></div>
-
-    <!-- TRADE FORM -->
-    <div class="trade-form">
-      <div class="trade-tabs">
-        <button class="trade-tab buy active" id="buyTab" onclick="setTradeTab('buy')">BUY</button>
-        <button class="trade-tab sell" id="sellTab" onclick="setTradeTab('sell')">SELL</button>
-      </div>
-      <div class="trade-body">
-        <div class="form-group">
-          <div class="form-label"><span>Price (USDT)</span><span style="color:var(--text2)">Market: 67,432.50</span></div>
-          <input class="form-input" type="text" id="priceInput" value="67432.50" placeholder="0.00">
-        </div>
-        <div class="form-group">
-          <div class="form-label"><span>Amount (BTC)</span><span style="color:var(--text2)" id="balLabel">Bal: 0.184 BTC</span></div>
-          <input class="form-input" type="text" id="amountInput" value="0.01" placeholder="0.00">
-        </div>
-        <div class="pct-row">
-          <div class="pct-btn" onclick="setPct(25)">25%</div>
-          <div class="pct-btn" onclick="setPct(50)">50%</div>
-          <div class="pct-btn" onclick="setPct(75)">75%</div>
-          <div class="pct-btn" onclick="setPct(100)">MAX</div>
-        </div>
-        <div class="form-group" style="margin-bottom:10px;">
-          <div class="form-label"><span>Total (USDT)</span></div>
-          <input class="form-input" type="text" id="totalInput" value="674.33" placeholder="0.00" readonly style="background:var(--bg2);cursor:default;">
-        </div>
-        <button class="submit-btn buy" id="submitBtn" onclick="placeTrade()">BUY BTC</button>
-      </div>
-    </div>
+  <!-- FOOTER -->
+  <div class="footer">
+    CryptoTerminal © 2025 | Prices are simulated for learning purposes
   </div>
 
-  <!-- NEWS PANEL -->
-  <div class="panel news-panel" style="grid-column:2;grid-row:2;">
-    <div class="panel-header">
-      <span class="panel-title">Market News</span>
-      <span style="font-family:var(--mono);font-size:10px;color:var(--text3)" id="newsClock">--:--:--</span>
-    </div>
-    <div class="news-list" id="newsList"></div>
-  </div>
+  <script>
+    // This function runs when user clicks "Refresh Prices"
+    function updatePrices() {
 
-</div>
+      // Bitcoin - generate a random price near $67,000
+      let btcPrice = 67000 + Math.floor(Math.random() * 2000);
+      let btcChange = (Math.random() * 4 - 2).toFixed(2);
 
-<div class="toast" id="toast"></div>
+      // Ethereum
+      let ethPrice = 3700 + Math.floor(Math.random() * 300);
+      let ethChange = (Math.random() * 4 - 2).toFixed(2);
 
-<script>
-// ============================================================
-// DATA & STATE
-// ============================================================
-const COINS = [
-  { sym: 'BTC', name: 'Bitcoin',  price: 67432.50, change: 2.34,  color: '#f7931a', icon: 'BTC' },
-  { sym: 'ETH', name: 'Ethereum', price: 3512.80,  change: -1.18, color: '#627eea', icon: 'ETH' },
-  { sym: 'SOL', name: 'Solana',   price: 178.42,   change: 5.61,  color: '#9945ff', icon: 'SOL' },
-  { sym: 'BNB', name: 'BNB',      price: 598.10,   change: 0.87,  color: '#f3ba2f', icon: 'BNB' },
-  { sym: 'XRP', name: 'Ripple',   price: 0.6124,   change: -0.42, color: '#3b9eff', icon: 'XRP' },
-];
+      // Solana
+      let solPrice = 170 + Math.floor(Math.random() * 30);
+      let solChange = (Math.random() * 6 - 3).toFixed(2);
 
-const HOLDINGS = [
-  { sym: 'BTC', name: 'Bitcoin',  qty: 0.184, avgCost: 63200, color: '#f7931a' },
-  { sym: 'ETH', name: 'Ethereum', qty: 2.45,  avgCost: 3120,  color: '#627eea' },
-  { sym: 'SOL', name: 'Solana',   qty: 18.5,  avgCost: 152.3, color: '#9945ff' },
-  { sym: 'BNB', name: 'BNB',      qty: 3.2,   avgCost: 570,   color: '#f3ba2f' },
-];
+      // BNB
+      let bnbPrice = 590 + Math.floor(Math.random() * 50);
+      let bnbChange = (Math.random() * 3 - 1.5).toFixed(2);
 
-const NEWS = [
-  { source: 'CoinDesk', time: '2m ago',  sentiment: 'bull', headline: 'Bitcoin breaks $67K resistance — analysts target $72K next', coins: ['BTC'] },
-  { source: 'Decrypt',  time: '8m ago',  sentiment: 'bull', headline: 'Ethereum ETF inflows hit $420M this week, setting new record', coins: ['ETH'] },
-  { source: 'Reuters',  time: '14m ago', sentiment: 'bear', headline: 'Fed signals higher-for-longer rates, crypto markets cautious', coins: ['BTC','ETH'] },
-  { source: 'TheBlock', time: '22m ago', sentiment: 'bull', headline: 'Solana DeFi TVL surpasses $8B as meme coin season drives activity', coins: ['SOL'] },
-  { source: 'Blockworks',time:'35m ago', sentiment: 'neut', headline: 'Binance receives regulatory approval in new European jurisdiction', coins: ['BNB'] },
-  { source: 'CoinTele', time: '51m ago', sentiment: 'bull', headline: 'MicroStrategy adds 5,000 BTC to corporate treasury in latest purchase', coins: ['BTC'] },
-  { source: 'Decrypt',  time: '1h ago',  sentiment: 'bear', headline: 'XRP case: SEC files for extension, delays final ruling by 60 days', coins: ['XRP'] },
-  { source: 'TheBlock', time: '2h ago',  sentiment: 'neut', headline: 'Crypto venture funding rebounds to $2.1B in Q1 2025', coins: ['BTC','ETH','SOL'] },
-  { source: 'CoinDesk', time: '3h ago',  sentiment: 'bull', headline: 'Lightning Network capacity hits all-time high of 5,400 BTC', coins: ['BTC'] },
-  { source: 'Blockworks',time:'4h ago',  sentiment: 'bear', headline: 'Galaxy Research downgrades Ethereum citing L2 fee compression', coins: ['ETH'] },
-];
+      // Update the HTML with new prices
+      document.getElementById("btc-price").innerText = "$" + btcPrice.toLocaleString();
+      document.getElementById("eth-price").innerText = "$" + ethPrice.toLocaleString();
+      document.getElementById("sol-price").innerText = "$" + solPrice.toLocaleString();
+      document.getElementById("bnb-price").innerText = "$" + bnbPrice.toLocaleString();
 
-let activeCoin = 0;
-let tradeSide = 'buy';
-let priceChart = null;
+      // Update change % and color
+      setChange("btc-change", btcChange);
+      setChange("eth-change", ethChange);
+      setChange("sol-change", solChange);
+      setChange("bnb-change", bnbChange);
+    }
 
-// ============================================================
-// TICKER STRIP
-// ============================================================
-function buildTicker() {
-  const el = document.getElementById('tickerStrip');
-  el.innerHTML = COINS.map((c, i) => `
-    <div class="ticker-item ${i === activeCoin ? 'active' : ''}" onclick="selectCoin(${i})">
-      <span class="ticker-sym">${c.sym}/USDT</span>
-      <span class="ticker-price">$${fmtPrice(c.price)}</span>
-      <span class="ticker-change ${c.change >= 0 ? 'up' : 'dn'}">${c.change >= 0 ? '+' : ''}${c.change}%</span>
-    </div>
-  `).join('');
-}
+    // Sets % change text and color for each coin
+    function setChange(id, change) {
+      let element = document.getElementById(id);
 
-function fmtPrice(p) {
-  if (p >= 1000) return p.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-  if (p >= 1) return p.toFixed(4);
-  return p.toFixed(6);
-}
-
-function selectCoin(i) {
-  activeCoin = i;
-  buildTicker();
-  updateHeader();
-  buildChart();
-  buildOrderBook();
-  buildTrades();
-}
-
-function updateHeader() {
-  const c = COINS[activeCoin];
-  document.getElementById('pairName').textContent = `${c.sym} / USDT`;
-  document.getElementById('pairPrice').textContent = fmtPrice(c.price);
-  document.getElementById('midPrice').textContent = fmtPrice(c.price);
-  const ch = document.getElementById('pairChange');
-  ch.textContent = `${c.change >= 0 ? '+' : ''}${c.change}%`;
-  ch.className = c.change >= 0 ? 'up' : 'dn';
-}
-
-// ============================================================
-// CHART
-// ============================================================
-function generateCandles(base, n = 60) {
-  const data = []; let p = base;
-  const now = Date.now();
-  for (let i = n; i >= 0; i--) {
-    const chg = (Math.random() - 0.48) * base * 0.012;
-    const open = p;
-    const close = p + chg;
-    const high = Math.max(open, close) + Math.random() * base * 0.004;
-    const low  = Math.min(open, close) - Math.random() * base * 0.004;
-    const vol  = Math.random() * 0.8 + 0.2;
-    data.push({ x: now - i * 4 * 3600000, o: open, h: high, l: low, c: close, v: vol });
-    p = close;
-  }
-  return data;
-}
-
-function buildChart() {
-  const coin = COINS[activeCoin];
-  const candles = generateCandles(coin.price);
-  const labels = candles.map(c => {
-    const d = new Date(c.x);
-    return d.toLocaleDateString('en-US', {month:'short',day:'numeric'}) + ' ' + d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false});
-  });
-  const closes  = candles.map(c => +c.c.toFixed(2));
-  const volumes = candles.map(c => c.v);
-  const colors  = candles.map(c => c.c >= c.o ? 'rgba(0,232,162,0.55)' : 'rgba(255,77,106,0.55)');
-
-  const ctx = document.getElementById('priceChart').getContext('2d');
-  if (priceChart) priceChart.destroy();
-
-  // gradient fill
-  const grad = ctx.createLinearGradient(0, 0, 0, 260);
-  grad.addColorStop(0, 'rgba(0,232,162,0.18)');
-  grad.addColorStop(1, 'rgba(0,232,162,0.0)');
-
-  priceChart = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [
-        {
-          type: 'line',
-          label: 'Price',
-          data: closes,
-          borderColor: 'rgba(0,232,162,0.9)',
-          borderWidth: 1.5,
-          pointRadius: 0,
-          pointHoverRadius: 4,
-          tension: 0.3,
-          fill: true,
-          backgroundColor: grad,
-          yAxisID: 'y',
-          order: 1
-        },
-        {
-          type: 'bar',
-          label: 'Volume',
-          data: volumes,
-          backgroundColor: colors,
-          borderRadius: 1,
-          yAxisID: 'yVol',
-          order: 2
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: { mode: 'index', intersect: false },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          backgroundColor: '#1a2433',
-          borderColor: 'rgba(255,255,255,0.1)',
-          borderWidth: 1,
-          titleColor: '#8899aa',
-          bodyColor: '#e8edf2',
-          titleFont: { family: 'Space Mono', size: 10 },
-          bodyFont: { family: 'Space Mono', size: 11 },
-          callbacks: {
-            label: ctx => ctx.datasetIndex === 0 ? ` $${ctx.parsed.y.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}` : ` Vol: ${ctx.parsed.y.toFixed(2)}K`
-          }
-        }
-      },
-      scales: {
-        x: {
-          ticks: { color: '#4a5c6e', font: { family: 'Space Mono', size: 9 }, maxTicksLimit: 8, maxRotation: 0 },
-          grid: { color: 'rgba(255,255,255,0.03)' }
-        },
-        y: {
-          position: 'right',
-          ticks: { color: '#4a5c6e', font: { family: 'Space Mono', size: 9 },
-            callback: v => '$' + v.toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0}) },
-          grid: { color: 'rgba(255,255,255,0.04)' }
-        },
-        yVol: {
-          position: 'left',
-          max: 5,
-          ticks: { display: false },
-          grid: { display: false }
-        }
+      if (change >= 0) {
+        element.innerText = "▲ +" + change + "%";
+        element.className = "up";
+      } else {
+        element.innerText = "▼ " + change + "%";
+        element.className = "down";
       }
     }
-  });
-}
+  </script>
 
-function setTF(tf) {
-  document.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
-  buildChart();
-}
-
-// ============================================================
-// ORDER BOOK
-// ============================================================
-function generateOrderBook(mid, n = 14) {
-  const asks = [], bids = [];
-  let askTotal = 0, bidTotal = 0;
-  for (let i = 1; i <= n; i++) {
-    const p = mid + i * (mid * 0.0003);
-    const s = +(Math.random() * 3 + 0.05).toFixed(4);
-    askTotal += s;
-    asks.push({ p: +p.toFixed(2), s, t: +askTotal.toFixed(4) });
-  }
-  for (let i = 1; i <= n; i++) {
-    const p = mid - i * (mid * 0.0003);
-    const s = +(Math.random() * 3 + 0.05).toFixed(4);
-    bidTotal += s;
-    bids.push({ p: +p.toFixed(2), s, t: +bidTotal.toFixed(4) });
-  }
-  return { asks: asks.reverse(), bids };
-}
-
-function buildOrderBook() {
-  const coin = COINS[activeCoin];
-  const { asks, bids } = generateOrderBook(coin.price);
-  const maxT = Math.max(asks[asks.length-1].t, bids[bids.length-1].t);
-
-  const askEl = document.getElementById('askRows');
-  askEl.innerHTML = asks.map(r => {
-    const w = (r.t / maxT * 100).toFixed(1);
-    return `<div class="ob-row">
-      <div class="ob-bar ask" style="width:${w}%"></div>
-      <span class="ob-price ask">${fmtPrice(r.p)}</span>
-      <span class="ob-size">${r.s.toFixed(4)}</span>
-      <span class="ob-total">${r.t.toFixed(3)}</span>
-    </div>`;
-  }).join('');
-
-  const bidEl = document.getElementById('bidRows');
-  bidEl.innerHTML = bids.map(r => {
-    const w = (r.t / maxT * 100).toFixed(1);
-    return `<div class="ob-row">
-      <div class="ob-bar bid" style="width:${w}%"></div>
-      <span class="ob-price bid">${fmtPrice(r.p)}</span>
-      <span class="ob-size">${r.s.toFixed(4)}</span>
-      <span class="ob-total">${r.t.toFixed(3)}</span>
-    </div>`;
-  }).join('');
-
-  const spread = (asks[asks.length-1].p - bids[0].p).toFixed(2);
-  document.getElementById('spreadBadge').textContent = `Spread: ${spread}`;
-}
-
-// ============================================================
-// RECENT TRADES
-// ============================================================
-function buildTrades() {
-  const coin = COINS[activeCoin];
-  const rows = [];
-  let now = Date.now();
-  for (let i = 0; i < 20; i++) {
-    const side = Math.random() > 0.5;
-    const p = coin.price + (Math.random() - 0.5) * coin.price * 0.002;
-    const s = +(Math.random() * 1.5 + 0.001).toFixed(4);
-    const ago = Math.floor(Math.random() * 120);
-    const d = new Date(now - ago * 1000);
-    const t = d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
-    rows.push({ side, p: +p.toFixed(2), s, t });
-  }
-  rows.sort((a, b) => b.t - a.t);
-  document.getElementById('tradeRows').innerHTML = rows.map(r => `
-    <div class="trade-row">
-      <span class="tr-price ${r.side ? 'up' : 'dn'}">${fmtPrice(r.p)}</span>
-      <span class="tr-size">${r.s}</span>
-      <span class="tr-time">${r.t}</span>
-    </div>
-  `).join('');
-}
-
-// ============================================================
-// PORTFOLIO
-// ============================================================
-function buildPortfolio() {
-  const totalVal = HOLDINGS.reduce((sum, h) => {
-    const coin = COINS.find(c => c.sym === h.sym);
-    return sum + (coin ? coin.price * h.qty : 0);
-  }, 0);
-
-  document.getElementById('holdingsList').innerHTML = HOLDINGS.map(h => {
-    const coin = COINS.find(c => c.sym === h.sym);
-    const val = coin ? coin.price * h.qty : 0;
-    const pnl = coin ? (coin.price - h.avgCost) * h.qty : 0;
-    const pct = coin ? ((coin.price - h.avgCost) / h.avgCost * 100) : 0;
-    const alloc = (val / totalVal * 100).toFixed(1);
-    return `
-      <div>
-        <div class="holding-row" onclick="selectCoin(${COINS.findIndex(c=>c.sym===h.sym)})">
-          <div class="holding-icon" style="background:${h.color}22;color:${h.color}">${h.sym.slice(0,3)}</div>
-          <div class="holding-info">
-            <div class="holding-sym">${h.sym}</div>
-            <div class="holding-name">${h.qty} units · ${alloc}% alloc</div>
-          </div>
-          <div class="holding-right">
-            <div class="holding-val">$${val.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
-            <div class="holding-pnl ${pnl>=0?'up':'dn'}">${pnl>=0?'+':''}${pct.toFixed(2)}%</div>
-          </div>
-        </div>
-        <div class="holding-bar">
-          <div class="holding-bar-fill" style="width:${alloc}%;background:${h.color}"></div>
-        </div>
-      </div>
-    `;
-  }).join('');
-}
-
-// ============================================================
-// TRADE FORM
-// ============================================================
-function setTradeTab(side) {
-  tradeSide = side;
-  document.getElementById('buyTab').classList.toggle('active', side === 'buy');
-  document.getElementById('sellTab').classList.toggle('active', side === 'sell');
-  const btn = document.getElementById('submitBtn');
-  btn.textContent = side === 'buy' ? `BUY ${COINS[activeCoin].sym}` : `SELL ${COINS[activeCoin].sym}`;
-  btn.className = `submit-btn ${side}`;
-}
-
-function setPct(p) {
-  const coin = COINS[activeCoin];
-  const base = tradeSide === 'buy' ? 5820 / coin.price : 0.184;
-  const amt = +(base * p / 100).toFixed(6);
-  document.getElementById('amountInput').value = amt;
-  document.getElementById('totalInput').value = (amt * coin.price).toFixed(2);
-}
-
-document.getElementById('amountInput').addEventListener('input', function() {
-  const coin = COINS[activeCoin];
-  const p = parseFloat(document.getElementById('priceInput').value) || coin.price;
-  const a = parseFloat(this.value) || 0;
-  document.getElementById('totalInput').value = (a * p).toFixed(2);
-});
-
-function placeTrade() {
-  const coin = COINS[activeCoin];
-  const amt = document.getElementById('amountInput').value;
-  const total = document.getElementById('totalInput').value;
-  showToast(`${tradeSide.toUpperCase()} ${amt} ${coin.sym} @ $${parseFloat(total).toLocaleString()} placed`);
-}
-
-// ============================================================
-// NEWS
-// ============================================================
-function buildNews() {
-  document.getElementById('newsList').innerHTML = NEWS.map(n => `
-    <div class="news-item">
-      <div class="news-meta">
-        <span class="news-source">${n.source}</span>
-        <span class="news-time">${n.time}</span>
-        <span class="news-sentiment ${n.sentiment}">${n.sentiment === 'bull' ? '▲ BULL' : n.sentiment === 'bear' ? '▼ BEAR' : '— NEUT'}</span>
-      </div>
-      <div class="news-headline">${n.headline}</div>
-      <div class="news-coins">${n.coins.map(c=>`<span class="news-coin-tag">${c}</span>`).join('')}</div>
-    </div>
-  `).join('');
-}
-
-// ============================================================
-// CLOCK
-// ============================================================
-function updateClock() {
-  const now = new Date();
-  document.getElementById('newsClock').textContent = now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}) + ' UTC';
-}
-
-// ============================================================
-// LIVE PRICE SIMULATION
-// ============================================================
-function simulatePrices() {
-  COINS.forEach(c => {
-    const chg = (Math.random() - 0.5) * c.price * 0.0008;
-    c.price = Math.max(c.price + chg, 0.001);
-  });
-  buildTicker();
-  updateHeader();
-  document.getElementById('midPrice').textContent = fmtPrice(COINS[activeCoin].price);
-  buildOrderBook();
-  buildPortfolio();
-  addTradeRow();
-}
-
-function addTradeRow() {
-  const coin = COINS[activeCoin];
-  const side = Math.random() > 0.5;
-  const p = coin.price + (Math.random() - 0.5) * coin.price * 0.001;
-  const s = +(Math.random() * 0.8 + 0.005).toFixed(4);
-  const now = new Date();
-  const t = now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
-  const row = document.createElement('div');
-  row.className = 'trade-row';
-  row.innerHTML = `<span class="tr-price ${side?'up':'dn'}">${fmtPrice(+p.toFixed(2))}</span><span class="tr-size">${s}</span><span class="tr-time">${t}</span>`;
-  const tr = document.getElementById('tradeRows');
-  tr.insertBefore(row, tr.firstChild);
-  if (tr.children.length > 30) tr.removeChild(tr.lastChild);
-}
-
-// ============================================================
-// TOAST
-// ============================================================
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2800);
-}
-
-// ============================================================
-// INIT
-// ============================================================
-buildTicker();
-updateHeader();
-buildChart();
-buildOrderBook();
-buildTrades();
-buildPortfolio();
-buildNews();
-updateClock();
-
-setInterval(simulatePrices, 1800);
-setInterval(updateClock, 1000);
-</script>
 </body>
 </html>
